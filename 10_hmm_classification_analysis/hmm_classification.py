@@ -1,11 +1,17 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import numpy as np
 import io
 import os
 import subprocess
 import tempfile
 
-class ProfileHMM():
+class HMMBase(ABC):
+    def __init__(self, states, transition, emission, iterations):
+        self.states = states
+        self.transition = transition
+        self.emission = emission
+        self.iterations = iterations
+    
     @staticmethod
     def get_alphabet(x):
         return sorted(set(x))
@@ -22,7 +28,26 @@ class ProfileHMM():
         for row in emission:
             buffer.write(' '.join(map(str, row.tolist())) + "\n")
         return buffer.getvalue()
+    
+    def sequence_likelihood(self, x, transition, emission, alphabet):
+        n_states = transition.shape[0]
+        x2idx = {c:i for i, c in enumerate(alphabet)}
+        x_list = np.array([x2idx[c] for c in x])
+        n = len(x_list)
+        log_transition = np.log(transition + 1e-12)
+        log_emission = np.log(emission + 1e-12)
+        forward = np.zeros((n, n_states))
+        forward[0, :] = log_emission[:, x_list[0]] - np.log(n_states)
+        for i in range(1, n):
+            for j in range(n_states):
+                prev = forward[i-1, :] + log_transition[:, j]
+                max_prev = np.max(prev)
+                forward[i, j] = np.log(np.sum(np.exp(prev - max_prev))) + max_prev + log_emission[j, x_list[i]]
+        max_final = np.max(forward[-1, :])
+        log_prob = np.log(np.sum(np.exp(forward[-1, :] - max_final))) + max_final
+        return float(f"{log_prob:.3g}")
 
+class ProfileHMM:
     def muscle_align(self, sequences, muscle_path=r"C:\Tools\muscle.exe"):
         if not sequences:
             raise ValueError("The sequence list is empty.")
@@ -140,43 +165,14 @@ class ProfileHMM():
     
     def build_profile(self, x, theta, pseudocount, sequences):
         alignment = np.array([list(seq) for seq in self.muscle_align(sequences, muscle_path=r"C:\Tools\muscle.exe")])
-        alphabet = self.get_alphabet(x)
+        alphabet = HMMBase.get_alphabet(x)
         transition, emission = self.profile(theta, pseudocount, alphabet, alignment)
         states = self.get_all_states(transition.shape[0])
         full_transition = self.get_full_transition(transition)
         full_transition = np.round(full_transition, 3)
         emission = np.round(emission, 3)
-        hmm = self.format_hmm(states, full_transition, emission)
+        hmm = HMMBase.format_hmm(states, full_transition, emission)
         return hmm, states, full_transition, emission
-
-class HMMBase(ABC):
-    def __init__(self, states, transition, emission, iterations):
-        self.states = states
-        self.transition = transition
-        self.emission = emission
-        self.iterations = iterations
-    
-    def sequence_likelihood(self, x, transition, emission, alphabet):
-        n_states = transition.shape[0]
-        x2idx = {c:i for i, c in enumerate(alphabet)}
-        x_list = np.array([x2idx[c] for c in x])
-        n = len(x_list)
-        log_transition = np.log(transition + 1e-12)
-        log_emission = np.log(emission + 1e-12)
-        forward = np.zeros((n, n_states))
-        forward[0, :] = log_emission[:, x_list[0]] - np.log(n_states)
-        for i in range(1, n):
-            for j in range(n_states):
-                prev = forward[i-1, :] + log_transition[:, j]
-                max_prev = np.max(prev)
-                forward[i, j] = np.log(np.sum(np.exp(prev - max_prev))) + max_prev + log_emission[j, x_list[i]]
-        max_final = np.max(forward[-1, :])
-        log_prob = np.log(np.sum(np.exp(forward[-1, :] - max_final))) + max_final
-        return float(f"{log_prob:.3g}")
-
-    @abstractmethod
-    def run(self, *args):
-        pass
 
 class FindPath(HMMBase):
     def __init__(self, states, transition, emission, iterations):
@@ -260,7 +256,7 @@ class FindPath(HMMBase):
         return path
 
     def run(self, x):
-        alphabet = ProfileHMM.get_alphabet(x)
+        alphabet = self.get_alphabet(x)
         transition_log = np.log(np.where(self.transition > 0, self.transition, 1e-300))
         emission_log = np.log(np.where(self.emission > 0, self.emission, 1e-300))
         path = self.find_hidden_path(x, transition_log, emission_log, alphabet)
@@ -271,8 +267,7 @@ class BaumWelch(HMMBase):
     def __init__(self, states, transition, emission, iterations):
         super().__init__(states, transition, emission, iterations)
 
-    @staticmethod
-    def logsumexp(a):
+    def logsumexp(self, a):
         a_max = np.max(a)
         return np.log(np.sum(np.exp(a - a_max))) + a_max
 
@@ -320,9 +315,9 @@ class BaumWelch(HMMBase):
         return transition, emission
 
     def run(self, x):
-        alphabet = ProfileHMM.get_alphabet(x)
+        alphabet = self.get_alphabet(x)
         updated_transition, updated_emission = self.baum_welch(x, alphabet)
-        hmm = ProfileHMM.format_hmm(self.states, updated_transition, updated_emission)
+        hmm = self.format_hmm(self.states, updated_transition, updated_emission)
         prob = self.sequence_likelihood(x, updated_transition, updated_emission, alphabet)
         path, y = FindPath(self.states, updated_transition, updated_emission, self.iterations).run(x)
         return hmm, prob, path
@@ -376,9 +371,9 @@ class Viterbi(HMMBase):
         return transition, emission
 
     def run(self, x):
-        alphabet = ProfileHMM.get_alphabet(x)
+        alphabet = self.get_alphabet(x)
         updated_transition, updated_emission = self.viterbi_training(x, alphabet)
-        hmm = ProfileHMM.format_hmm(self.states, updated_transition, updated_emission)
+        hmm = self.format_hmm(self.states, updated_transition, updated_emission)
         prob = self.sequence_likelihood(x, updated_transition, updated_emission, alphabet)
         path, y = FindPath(self.states, updated_transition, updated_emission, self.iterations).run(x)
         return hmm, prob, path

@@ -1,24 +1,22 @@
+from abc import ABC
 from collections import defaultdict, deque
 import matplotlib.pyplot as plt
 
-class GenomeRearrangementBase:
-    @staticmethod
-    def pattern_to_number(pattern):
+class GenomeRearrangementBase(ABC):
+    def pattern_to_number(self, pattern):
         num = 0
         for symbol in pattern:
             num = 4 * num + {'A': 0, 'C': 1, 'G': 2, 'T': 3}[symbol]
         return num
     
-    @staticmethod
-    def reverse_complement_number(kmer_num, k):
+    def reverse_complement_number(self, kmer_num, k):
         rc = 0
         for _ in range(k):
             rc = (rc << 2) | (3 - (kmer_num & 3))
             kmer_num >>= 2
         return rc
     
-    @staticmethod
-    def build_synteny_graph(shared_kmers, max_distance):
+    def build_synteny_graph(self, shared_kmers, max_distance):
         bin_size = max_distance
         bins = defaultdict(list)
         node_positions = []
@@ -42,8 +40,7 @@ class GenomeRearrangementBase:
                             adj[idx].append(neighbor_idx)
         return adj
     
-    @staticmethod
-    def find_connected_components(adj):
+    def find_connected_components(self, adj):
         visited = set()
         components = []
         for node in adj:
@@ -244,16 +241,13 @@ class SyntenyBlockConstruction(GenomeRearrangementBase):
         plt.show(block=True)
 
 class BreakpointSort(GenomeRearrangementBase):
-    @staticmethod
-    def count_breakpoints(perm):
+    def count_breakpoints(self, perm):
         return sum(1 for i in range(len(perm) - 1) if perm[i + 1] - perm[i] != 1)
     
-    @staticmethod
-    def apply_reversal(perm, i, j):
+    def apply_reversal(self, perm, i, j):
         return perm[:i] + [-x for x in perm[i:j + 1][::-1]] + perm[j + 1:]
     
-    @staticmethod
-    def format_perm(perm):
+    def format_perm(self, perm):
         return '[' + ' '.join(f"{'+' if x > 0 else ''}{x}" for x in perm) + ']'
     
     def run(self, perm):
@@ -285,8 +279,7 @@ class BreakpointSort(GenomeRearrangementBase):
         return reversals, steps
 
 class TwoBreakSort(GenomeRearrangementBase):
-    @staticmethod
-    def cycle_to_chromosome(nodes):
+    def cycle_to_chromosome(self, nodes):
         chromosome = []
         for j in range(len(nodes) // 2):
             if nodes[2 * j] < nodes[2 * j + 1]:
@@ -295,8 +288,7 @@ class TwoBreakSort(GenomeRearrangementBase):
                 chromosome.append(-nodes[2 * j] // 2)
         return chromosome
     
-    @staticmethod
-    def chromosome_to_cycle(chromosome):
+    def chromosome_to_cycle(self, chromosome):
         nodes = [0] * (2 * len(chromosome))
         for j in range(len(chromosome)):
             i = chromosome[j]
@@ -308,18 +300,16 @@ class TwoBreakSort(GenomeRearrangementBase):
                 nodes[2 * j + 1] = -2 * i - 1
         return nodes
     
-    @staticmethod
-    def colored_edges(genome):
+    def colored_edges(self, genome):
         edges = set()
         for chromosome in genome:
-            nodes = TwoBreakSort.chromosome_to_cycle(chromosome)
+            nodes = self.chromosome_to_cycle(chromosome)
             nodes.append(nodes[0])
             for j in range(len(chromosome)):
                 edges.add((nodes[2 * j + 1], nodes[2 * j + 2]))
         return edges
     
-    @staticmethod
-    def two_break_on_genome_graph(edges, i0, i1, j0, j1):
+    def two_break_on_genome_graph(self, edges, i0, i1, j0, j1):
         edges.discard((i0, i1))
         edges.discard((i1, i0))
         edges.discard((j0, j1))
@@ -328,8 +318,7 @@ class TwoBreakSort(GenomeRearrangementBase):
         edges.add((i1, j1))
         return edges
     
-    @staticmethod
-    def find_and_merge(elements):
+    def find_and_merge(self, elements):
         parent = {x: x for x in elements}
         rank = {x: 0 for x in elements}
         
@@ -352,26 +341,21 @@ class TwoBreakSort(GenomeRearrangementBase):
         
         return find, merge
     
-    @staticmethod
-    def group_nodes(edges):
+    def group_nodes(self, edges):
         elements = set()
         for a, b in edges:
             elements.update([a, b])
             elements.update([a + 1 if a % 2 else a - 1])
             elements.update([b + 1 if b % 2 else b - 1])
-        
-        find, merge = TwoBreakSort.find_and_merge(elements)
-        
+        find, merge = self.find_and_merge(elements)
         for a, b in edges:
             merge(a, b)
             merge(a, a + 1 if a % 2 else a - 1)
             merge(b, b + 1 if b % 2 else b - 1)
-        
         nodes_id = {x: find(x) for x in elements}
         return nodes_id
     
-    @staticmethod
-    def build_edge_dict(edges, nodes_id):
+    def build_edge_dict(self, edges, nodes_id):
         edge_dict = dict()
         for e in edges:
             id = nodes_id[e[0]]
@@ -381,11 +365,10 @@ class TwoBreakSort(GenomeRearrangementBase):
             edge_dict[id][e[1]] = e[0]
         return edge_dict
     
-    @staticmethod
-    def two_break_on_genome(genome, i0, i1, j0, j1):
-        edges = TwoBreakSort.two_break_on_genome_graph(TwoBreakSort.colored_edges(genome), i0, i1, j0, j1)
-        nodes_id = TwoBreakSort.group_nodes(edges)
-        edge_dict = TwoBreakSort.build_edge_dict(edges, nodes_id)
+    def two_break_on_genome(self, genome, i0, i1, j0, j1):
+        edges = self.two_break_on_genome_graph(self.colored_edges(genome), i0, i1, j0, j1)
+        nodes_id = self.group_nodes(edges)
+        edge_dict = self.build_edge_dict(edges, nodes_id)
         nodes_dict = dict()
         for id, edge in edge_dict.items():
             nodes_dict[id] = []
@@ -403,16 +386,15 @@ class TwoBreakSort(GenomeRearrangementBase):
                 curr0 = new_node
         new_genome = []
         for nodes in nodes_dict.values():
-            new_genome.append(TwoBreakSort.cycle_to_chromosome(nodes))
+            new_genome.append(self.cycle_to_chromosome(nodes))
         new_genome.sort(key=lambda x: abs(x[0]))
         return new_genome
     
-    @staticmethod
-    def edge_from_non_trivial_cycle(edges, red_edges, blue_edges, blocks):
+    def edge_from_non_trivial_cycle(self, edges, red_edges, blue_edges, blocks):
         elements = set()
         for a, b in edges:
             elements.update([a, b])
-        find, merge = TwoBreakSort.find_and_merge(elements)
+        find, merge = self.find_and_merge(elements)
         for a, b in edges:
             merge(a, b)
         nodes_id = {}
@@ -444,19 +426,18 @@ class TwoBreakSort(GenomeRearrangementBase):
                 removed.append((edge[1], red_edge_dict[edge_id][edge[1]]))
         return has_non_trivial_cycle, removed
     
-    @staticmethod
-    def shortest_rearrangement_scenario(P, Q):
+    def shortest_rearrangement_scenario(self, P, Q):
         blocks = sum(len(chrom) for chrom in P)
         result = [P]
-        red_edges = TwoBreakSort.colored_edges(P)
-        blue_edges = TwoBreakSort.colored_edges(Q)
+        red_edges = self.colored_edges(P)
+        blue_edges = self.colored_edges(Q)
         breakpoint_graph = red_edges.union(blue_edges)
-        has_non_trivial_cycle, removed = TwoBreakSort.edge_from_non_trivial_cycle(breakpoint_graph, red_edges, blue_edges, blocks)
+        has_non_trivial_cycle, removed = self.edge_from_non_trivial_cycle(breakpoint_graph, red_edges, blue_edges, blocks)
         while has_non_trivial_cycle:
-            red_edges = TwoBreakSort.two_break_on_genome_graph(red_edges, removed[0][0], removed[0][1], removed[1][0], removed[1][1])
+            red_edges = self.two_break_on_genome_graph(red_edges, removed[0][0], removed[0][1], removed[1][0], removed[1][1])
             breakpoint_graph = red_edges.union(blue_edges)
-            P = TwoBreakSort.two_break_on_genome(P, removed[0][0], removed[0][1], removed[1][0], removed[1][1])
-            has_non_trivial_cycle, removed = TwoBreakSort.edge_from_non_trivial_cycle(breakpoint_graph, red_edges, blue_edges, blocks)
+            P = self.two_break_on_genome(P, removed[0][0], removed[0][1], removed[1][0], removed[1][1])
+            has_non_trivial_cycle, removed = self.edge_from_non_trivial_cycle(breakpoint_graph, red_edges, blue_edges, blocks)
             result.append(P)
         return result
     
@@ -465,6 +446,5 @@ class TwoBreakSort(GenomeRearrangementBase):
         distance = len(steps) - 1
         return distance, steps
     
-    @staticmethod
-    def format_genome(genome):
+    def format_genome(self, genome):
         return ''.join(['[' + ' '.join(f"{'+' if x > 0 else ''}{x}" for x in chrom) + ']' for chrom in genome])

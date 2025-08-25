@@ -1,5 +1,5 @@
 import numpy as np
-from abc import ABC, abstractmethod
+from abc import ABC
 
 class PeptideBase(ABC):
     amino_acid_mass = {
@@ -34,16 +34,6 @@ class PeptideBase(ABC):
         for mass in spectrum:
             vector[mass] += 1
         return vector
-    
-    def vector_to_spectrum(vector):
-        spectrum = []
-        for mass, count in enumerate(vector):
-            spectrum.extend([mass] * count)
-        return sorted(spectrum)
-
-    @abstractmethod
-    def run(self, *args):
-        pass
 
 class PeptideSearch(PeptideBase):
     def __init__(self, k, peptides, spectral_vectors):

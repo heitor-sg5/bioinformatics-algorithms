@@ -1,9 +1,9 @@
 import random
 import math
 import numpy as np
-from abc import ABC, abstractmethod
+from abc import ABC
 
-class ClusteringBase:
+class ClusteringBase(ABC):
     def euclidean(self, a, b):
         return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
     
@@ -48,11 +48,6 @@ class ClusteringBase:
                 result_str.append(f"Cluster {i+1}: {points_str} and centre = {centre_str}")
             return "\n".join(result_str)
 
-class ClusteringAlgorithm(ABC):
-    @abstractmethod
-    def run(self, data, k):
-        pass
-
 class Node:
     def __init__(self, name):
         self.name = name
@@ -62,62 +57,55 @@ class Node:
     def add_child(self, child):
         self.children.append(child)
 
-class KCentresClustering(ClusteringAlgorithm):
-    def __init__(self):
-        self.base = ClusteringBase()
-    
+class KCentresClustering(ClusteringBase):
     def run(self, data, k):
         centres = [random.choice(data)]
         while len(centres) < k:
-            farthest_point = max(data, key=lambda p: min(self.base.euclidean(p, c) for c in centres))
+            farthest_point = max(data, key=lambda p: min(self.euclidean(p, c) for c in centres))
             centres.append(farthest_point)
         clusters = {i: [] for i in range(k)}
         for idx, point in enumerate(data):
-            nearest_idx = min(range(k), key=lambda i: self.base.euclidean(point, centres[i]))
+            nearest_idx = min(range(k), key=lambda i: self.euclidean(point, centres[i]))
             clusters[nearest_idx].append(idx)
         return centres, clusters
 
-class LloydKMeansClustering(ClusteringAlgorithm):
-    def __init__(self):
-        self.base = ClusteringBase()
-    
+class LloydKMeansClustering(ClusteringBase):
     def run(self, data, k, max_iterations=100):
         centres = random.sample(data, k)
         for _ in range(max_iterations):
             clusters = {i: [] for i in range(k)}
             for idx, point in enumerate(data):
-                nearest_idx = min(range(k), key=lambda i: self.base.euclidean(point, centres[i]))
+                nearest_idx = min(range(k), key=lambda i: self.euclidean(point, centres[i]))
                 clusters[nearest_idx].append(idx)
             new_centres = []
             for i in range(k):
                 if clusters[i]:
                     points = [data[idx] for idx in clusters[i]]
-                    new_centres.append(self.base.mean_point(points))
+                    new_centres.append(self.mean_point(points))
                 else:
                     new_centres.append(random.choice(data))
-            if all(self.base.euclidean(centres[i], new_centres[i]) < 1e-6 for i in range(k)):
+            if all(self.euclidean(centres[i], new_centres[i]) < 1e-6 for i in range(k)):
                 break
             centres = new_centres
         return centres, clusters
 
-class SoftKMeansClustering(ClusteringAlgorithm):
+class SoftKMeansClustering(ClusteringBase):
     def __init__(self, beta):
         self.beta = beta
-        self.base = ClusteringBase()
     
     def run(self, data, k, max_iterations=100):
         centres = random.sample(data, k)
         for _ in range(max_iterations):
             responsibilities = []
             for point in data:
-                weights = [math.exp(-self.beta * self.base.euclidean(point, c)) for c in centres]
+                weights = [math.exp(-self.beta * self.euclidean(point, c)) for c in centres]
                 total_weight = sum(weights)
                 responsibilities.append([w / total_weight for w in weights])
             new_centres = []
             for j in range(k):
                 weights_j = [resp[j] for resp in responsibilities]
-                new_centres.append(self.base.mean_point(data, weights_j))
-            if max(self.base.euclidean(centres[i], new_centres[i]) for i in range(k)) < 1e-6:
+                new_centres.append(self.mean_point(data, weights_j))
+            if max(self.euclidean(centres[i], new_centres[i]) for i in range(k)) < 1e-6:
                 break
             centres = new_centres
         clusters = {i: [] for i in range(k)}
@@ -126,22 +114,21 @@ class SoftKMeansClustering(ClusteringAlgorithm):
             clusters[assigned].append(i)
         return centres, clusters
 
-class CASTClustering(ClusteringAlgorithm):
+class CASTClustering(ClusteringBase):
     def __init__(self, theta):
         self.theta = theta
-        self.base = ClusteringBase()
     
     def run(self, data, k):
         n = len(data)
         points = np.asarray(data, dtype=float)
-        max_dist = max(self.base.euclidean(points[i], points[j]) for i in range(n) for j in range(i+1, n)) if n > 1 else 1.0
+        max_dist = max(self.euclidean(points[i], points[j]) for i in range(n) for j in range(i+1, n)) if n > 1 else 1.0
         R = np.zeros((n, n), dtype=float)
         for i in range(n):
             for j in range(i, n):
                 if i == j:
                     R[i, j] = 1.0
                 else:
-                    dist = self.base.euclidean(points[i], points[j])
+                    dist = self.euclidean(points[i], points[j])
                     R[i, j] = R[j, i] = 1.0 - dist / max_dist if max_dist != 0 else 1.0
         unassigned = set(range(n))
         clusters = []
@@ -172,20 +159,19 @@ class CASTClustering(ClusteringAlgorithm):
                     changed = True
             clusters.append(sorted(C))
             unassigned -= C
-        centres = [self.base.mean_point([data[i] for i in cl]) for cl in clusters]
+        centres = [self.mean_point([data[i] for i in cl]) for cl in clusters]
         return centres, {i: cl for i, cl in enumerate(clusters)}
 
-class HierarchicalClustering(ClusteringAlgorithm):
+class HierarchicalClustering(ClusteringBase):
     def __init__(self, linkage):
         self.linkage = linkage
-        self.base = ClusteringBase()
     
     def run(self, data, k):
         n = len(data)
         D = np.zeros((n, n), dtype=float)
         for i in range(n):
             for j in range(i + 1, n):
-                D[i, j] = D[j, i] = self.base.pearson_distance(data[i], data[j])
+                D[i, j] = D[j, i] = self.pearson_distance(data[i], data[j])
         clusters = {i: [i] for i in range(n)}
         nodes = {i: Node(str(i)) for i in range(n)}
         ages = {i: 0.0 for i in range(n)}

@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections import Counter
 import random
 
@@ -11,9 +11,6 @@ amino_acid_mass = {
 }
 
 class TheoreticalSpectra():
-    def __init__(self, p):
-        self.p = p
-    
     def cyclic_spectrum_with_error(self, peptide, p):
         prefix_mass = [0.0]
         for aa in peptide:
@@ -34,11 +31,7 @@ class TheoreticalSpectra():
         noisy_spectrum = [mass for i, mass in enumerate(spectrum) if i not in indices_to_remove]
         return sorted(noisy_spectrum)
 
-class PeptideSequencingAlgorithm(ABC):
-    @abstractmethod
-    def run(self, spectrum_str):
-        pass
-
+class Sequencing(ABC):
     def mass(self, peptide):
         return round(sum(amino_acid_mass[aa] for aa in peptide), 1)
 
@@ -64,7 +57,7 @@ class PeptideSequencingAlgorithm(ABC):
         return sorted(spectrum)
 
     def score(self, peptide, spectrum, cyclic=True, t=0.5):
-        ts = TheoreticalSpectra(p=0.0)
+        ts = TheoreticalSpectra()
         peptide_spectrum = ts.cyclic_spectrum_with_error(peptide, 0.0) if cyclic else self.linear_spectrum(peptide)
         peptide_spectrum = sorted(peptide_spectrum)
         spectrum = sorted(spectrum)
@@ -81,7 +74,7 @@ class PeptideSequencingAlgorithm(ABC):
                 j += 1
         return score
 
-class BranchAndBoundCyclopeptide(PeptideSequencingAlgorithm):
+class BranchAndBoundCyclopeptide(Sequencing):
     def consistent(self, peptide, spectrum):
         lin_spec = self.linear_spectrum(peptide)
         spec_counts = Counter(round(m, 1) for m in spectrum)
@@ -103,7 +96,7 @@ class BranchAndBoundCyclopeptide(PeptideSequencingAlgorithm):
             for peptide in peptides_copy:
                 peptide_mass_val = self.mass(peptide)
                 if abs(peptide_mass_val - parent_mass_val) < 1e-6:
-                    ts = TheoreticalSpectra(p=0.0)
+                    ts = TheoreticalSpectra()
                     if ts.cyclic_spectrum_with_error(peptide, 0.0) == spectrum:
                         final_peptides.append(peptide)
                     peptides.remove(peptide)
@@ -111,7 +104,7 @@ class BranchAndBoundCyclopeptide(PeptideSequencingAlgorithm):
                     peptides.remove(peptide)
         return final_peptides[0] if final_peptides else "No peptide found"
 
-class LeaderboardAndConvolutionCyclopeptide(PeptideSequencingAlgorithm):
+class LeaderboardAndConvolutionCyclopeptide(Sequencing):
     def __init__(self, n, m, t, c):
         self.n = n
         self.m = m

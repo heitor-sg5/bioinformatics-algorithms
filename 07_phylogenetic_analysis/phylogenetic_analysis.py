@@ -3,7 +3,7 @@ import tempfile
 import os
 import numpy as np
 import random
-from abc import ABC, abstractmethod
+from abc import ABC
 
 class DistanceMatrixBase:
     def muscle_align(self, sequences, muscle_path=r"C:\Tools\muscle.exe"):
@@ -85,15 +85,28 @@ class DistanceMatrixBase:
                 dist_matrix[i][j] = dist
                 dist_matrix[j][i] = dist
         return dist_matrix
-
-class PhylogeneticAlgorithm(ABC):
-    @abstractmethod
-    def run(self, *args):
-        pass
     
-    @abstractmethod
-    def format_tree(self, tree):
-        pass
+class PhyloBase(ABC):
+    def format_tree(self, node):
+        result_str = []
+        def collect_tree(n, indent=0):
+            result_str.append("  " * indent + str(n.name))
+            for child, length in n.children:
+                result_str.append("  " * (indent + 1) + f"|-- {child.name} (len={length:.4f})")
+                collect_tree(child, indent + 2)
+        collect_tree(node)
+        return "\n".join(result_str)
+    
+    def format_newick(self, node):
+        def to_newick(n):
+            if n.is_leaf():
+                return n.name
+            children_str = ",".join(
+                f"{to_newick(child)}:{length:.2f}" 
+                for child, length in n.children
+            )
+            return f"({children_str}){n.name or ''}"
+        return to_newick(node) + ";"
 
 class Node:
     def __init__(self, name=None):
@@ -110,7 +123,7 @@ class Node:
     def is_leaf(self):
         return len(self.children) == 0
 
-class UPGMA(PhylogeneticAlgorithm):
+class UPGMA(PhyloBase):
     def run(self, D, labels):
         D = np.array(D, dtype=float)
         n = len(D)
@@ -152,29 +165,8 @@ class UPGMA(PhylogeneticAlgorithm):
                 D[ck][current_id] = dist
             current_id += 1
         return nodes[list(clusters.keys())[0]]
-    
-    def format_tree(self, node):
-        result_str = []
-        def collect_tree(n, indent=0):
-            result_str.append("  " * indent + str(n.name))
-            for child, length in n.children:
-                result_str.append("  " * (indent + 1) + f"|-- {child.name} (len={length:.4f})")
-                collect_tree(child, indent + 2)
-        collect_tree(node)
-        return "\n".join(result_str)
-    
-    def format_newick(self, node):
-        def to_newick(n):
-            if n.is_leaf():
-                return n.name
-            children_str = ",".join(
-                f"{to_newick(child)}:{length:.2f}" 
-                for child, length in n.children
-            )
-            return f"({children_str}){n.name or ''}"
-        return to_newick(node) + ";"
 
-class NeighborJoining(PhylogeneticAlgorithm):
+class NeighborJoining(PhyloBase):
     def run(self, D, labels):
         D = np.array(D, dtype=float)
         n = len(D)
@@ -224,29 +216,8 @@ class NeighborJoining(PhylogeneticAlgorithm):
             if found:
                 return found
         return None
-    
-    def format_tree(self, node):
-        result_str = []
-        def collect_tree(n, indent=0):
-            result_str.append("  " * indent + str(n.name))
-            for child, length in n.children:
-                result_str.append("  " * (indent + 1) + f"|-- {child.name} (len={length:.4f})")
-                collect_tree(child, indent + 2)
-        collect_tree(node)
-        return "\n".join(result_str)
-    
-    def format_newick(self, node):
-        def to_newick(n):
-            if n.is_leaf():
-                return n.name
-            children_str = ",".join(
-                f"{to_newick(child)}:{length:.2f}" 
-                for child, length in n.children
-            )
-            return f"({children_str}){n.name or ''}"
-        return to_newick(node) + ";"
 
-class SmallParsimonyAndNNI(PhylogeneticAlgorithm):
+class SmallParsimonyAndNNI(PhyloBase):
     def run(self, sequences):
         alphabet = sorted(set("".join(sequences)))
         tree = self.generate_random_tree(sequences)
@@ -379,24 +350,3 @@ class SmallParsimonyAndNNI(PhylogeneticAlgorithm):
                 u_new.add_child(swap_child, 0.0)
                 variants.append(new_tree)
         return variants
-
-    def format_tree(self, node):
-        result_str = []
-        def collect_tree(n, indent=0):
-            result_str.append("  " * indent + str(n.name))
-            for child, length in n.children:
-                result_str.append("  " * (indent + 1) + f"|-- {child.name} (len={length:.4f})")
-                collect_tree(child, indent + 2)
-        collect_tree(node)
-        return "\n".join(result_str)
-    
-    def format_newick(self, node):
-        def to_newick(n):
-            if n.is_leaf():
-                return n.name
-            children_str = ",".join(
-                f"{to_newick(child)}:{length:.2f}" 
-                for child, length in n.children
-            )
-            return f"({children_str}){n.name or ''}"
-        return to_newick(node) + ";"

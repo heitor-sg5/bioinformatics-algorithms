@@ -1,7 +1,7 @@
 from collections import defaultdict
-from abc import ABC, abstractmethod
+from abc import ABC
 
-class PatternMatchingBase:
+class PatternMatchingBase(ABC):
     def burrows_wheeler_transform(self, text):
         rotations = [text[i:] + text[:i] for i in range(len(text))]
         rotations_sorted = sorted(rotations)
@@ -41,19 +41,11 @@ class PatternMatchingBase:
                 count += 1
         return count
 
-class PatternMatchingAlgorithm(ABC):
-    @abstractmethod
-    def run(self, *args):
-        pass
-
-class BWTMatching(PatternMatchingAlgorithm):
-    def __init__(self):
-        self.base = PatternMatchingBase()
-    
+class BWTMatching(PatternMatchingBase):
     def run(self, text, pattern):
-        bwt = self.base.burrows_wheeler_transform(text)
-        suffix_array = self.base.build_suffix_array(text)
-        checkpoints, step = self.base.build_checkpoints(bwt)
+        bwt = self.burrows_wheeler_transform(text)
+        suffix_array = self.build_suffix_array(text)
+        checkpoints, step = self.build_checkpoints(bwt)
         first_col = ''.join(sorted(bwt))
         first_occurrence = {}
         for i, char in enumerate(first_col):
@@ -67,8 +59,8 @@ class BWTMatching(PatternMatchingAlgorithm):
                 pattern = pattern[:-1]
                 if symbol not in first_occurrence:
                     return [], 0
-                top = first_occurrence[symbol] + self.base.count_symbol(checkpoints, bwt, symbol, top, step)
-                bottom = first_occurrence[symbol] + self.base.count_symbol(checkpoints, bwt, symbol, bottom + 1, step) - 1
+                top = first_occurrence[symbol] + self.count_symbol(checkpoints, bwt, symbol, top, step)
+                bottom = first_occurrence[symbol] + self.count_symbol(checkpoints, bwt, symbol, bottom + 1, step) - 1
                 if top > bottom:
                     return [], 0
             else:
@@ -76,12 +68,9 @@ class BWTMatching(PatternMatchingAlgorithm):
                 return positions, len(positions)
         return [], 0
 
-class SuffixArrayMatching(PatternMatchingAlgorithm):
-    def __init__(self):
-        self.base = PatternMatchingBase()
-    
+class SuffixArrayMatching(PatternMatchingBase):
     def run(self, text, pattern):
-        sa = self.base.build_suffix_array(text)
+        sa = self.build_suffix_array(text)
         n = len(text)
         min_index = 0
         max_index = n - 1
@@ -108,10 +97,7 @@ class SuffixArrayMatching(PatternMatchingAlgorithm):
         positions = sorted([sa[i] + 1 for i in range(first, last + 1)])
         return positions, len(positions)
 
-class PrefixTrieMatching(PatternMatchingAlgorithm):
-    def __init__(self):
-        self.base = PatternMatchingBase()
-    
+class PrefixTrieMatching(PatternMatchingBase):
     def run(self, text, patterns):
         trie = self.construct_trie(patterns)
         result = {pattern: ([], 0) for pattern in patterns}
@@ -159,20 +145,19 @@ class PrefixTrieMatching(PatternMatchingAlgorithm):
                 break
         return matches
 
-class ApproximatePatternMatching(PatternMatchingAlgorithm):
+class ApproximatePatternMatching(PatternMatchingBase):
     def __init__(self, d):
         self.d = d
-        self.base = PatternMatchingBase()
     
     def run(self, text, patterns):
-        bwt = self.base.burrows_wheeler_transform(text)
-        suffix_array = self.base.build_suffix_array(text)
+        bwt = self.burrows_wheeler_transform(text)
+        suffix_array = self.build_suffix_array(text)
         first_col = ''.join(sorted(bwt))
         first_occurrence = {}
         for i, char in enumerate(first_col):
             if char not in first_occurrence:
                 first_occurrence[char] = i
-        checkpoints, step = self.base.build_checkpoints(bwt)
+        checkpoints, step = self.build_checkpoints(bwt)
         
         result = {}
         for pattern in patterns:
@@ -190,30 +175,27 @@ class ApproximatePatternMatching(PatternMatchingAlgorithm):
             pattern_rest = pattern[:-1]
             matches = set()
             if symbol in first_occurrence:
-                new_top = first_occurrence[symbol] + self.base.count_symbol(checkpoints, bwt, symbol, top, step)
-                new_bottom = first_occurrence[symbol] + self.base.count_symbol(checkpoints, bwt, symbol, bottom+1, step) - 1
+                new_top = first_occurrence[symbol] + self.count_symbol(checkpoints, bwt, symbol, top, step)
+                new_bottom = first_occurrence[symbol] + self.count_symbol(checkpoints, bwt, symbol, bottom+1, step) - 1
                 if new_top <= new_bottom:
                     matches |= recursive_match(pattern_rest, new_top, new_bottom, mismatches_left)
             if mismatches_left > 0:
                 for alt_symbol in first_occurrence.keys():
                     if alt_symbol == symbol:
                         continue
-                    new_top = first_occurrence[alt_symbol] + self.base.count_symbol(checkpoints, bwt, alt_symbol, top, step)
-                    new_bottom = first_occurrence[alt_symbol] + self.base.count_symbol(checkpoints, bwt, alt_symbol, bottom+1, step) - 1
+                    new_top = first_occurrence[alt_symbol] + self.count_symbol(checkpoints, bwt, alt_symbol, top, step)
+                    new_bottom = first_occurrence[alt_symbol] + self.count_symbol(checkpoints, bwt, alt_symbol, bottom+1, step) - 1
                     if new_top <= new_bottom:
                         matches |= recursive_match(pattern_rest, new_top, new_bottom, mismatches_left - 1)
             return matches
         
         return list(recursive_match(pattern, 0, len(bwt)-1, self.d))
 
-class SuffixTree(PatternMatchingAlgorithm):
+class SuffixTree(PatternMatchingBase):
     class Node:
         def __init__(self):
             self.children = {}
             self.indexes = []
-    
-    def __init__(self):
-        self.base = PatternMatchingBase()
     
     def run(self, text):
         root = self.suffix_tree_construction(text)
@@ -265,16 +247,13 @@ class SuffixTree(PatternMatchingAlgorithm):
                 max_length = sub_len
         return longest_substring, max_length
 
-class GeneralizedSuffixTree(PatternMatchingAlgorithm):
+class GeneralizedSuffixTree(PatternMatchingBase):
     class Node:
         def __init__(self):
             self.children = {}
             self.indexes = []
             self.color = None
-    
-    def __init__(self):
-        self.base = PatternMatchingBase()
-    
+            
     def run(self, text1, text2):
         root = self.build_generalized_suffix_tree(text1, text2)
         compressed_root = self.suffix_tree(root)

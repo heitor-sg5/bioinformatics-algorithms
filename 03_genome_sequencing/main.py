@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 import time
-from genome_sequencing import DeBruijnEulerian, PairedDeBruijnEulerian, MaximalNonBranching, generate_kmers, generate_read_pairs
-
+from genome_sequencing import Sequencing, DeBruijnEulerian, PairedDeBruijnEulerian, MaximalNonBranching
 def get_user_inputs():
     k_input = input("Enter k (default 10): ").strip()
     d_input = input("Enter d (default 50): ").strip()
@@ -38,8 +37,9 @@ def load_fasta(file_path):
 def main():
     genome = get_fasta_file()
     k, d = get_user_inputs()
-    kmers_str = generate_kmers(genome, k)
-    paired_reads_str = generate_read_pairs(genome, k, d)
+    gs = Sequencing()
+    kmers_str = gs.generate_kmers(genome, k)
+    paired_reads_str = gs.generate_read_pairs(genome, k, d)
     with open('reads_and_pairs.txt', 'w') as rp_file:
         rp_file.write("Reads:\n")
         rp_file.write(kmers_str + "\n\n")

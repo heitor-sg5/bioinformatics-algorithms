@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog
 import time
 import numpy as np
-from sequence_alignment import GlobalAlignment, SmithWaterman, FittingAlignment, MultipleSequenceAlignment
+from sequence_alignment import GlobalAlignment, SmithWaterman, FittingAlignment, MSA
 
 def get_user_inputs():
     align_scope = input("Align 2 sequences (p) or multiple (m)?: ").strip().lower()
@@ -97,8 +97,8 @@ def main():
             ]
     else:
         algorithms = [
-            ('MSA Global Alignment (Pair-Sum Scoring)', MultipleSequenceAlignment('pair_sum', pmm, pgap)),
-            ('MSA Global Alignment (Entropy Scoring)', MultipleSequenceAlignment('entropy', pmm, pgap))
+            ('MSA Global Alignment (Pair-Sum Scoring)', MSA('pair_sum', pmm, pgap)),
+            ('MSA Global Alignment (Entropy Scoring)', MSA('entropy', pmm, pgap))
         ]
     results = []
     overall_start = time.time()

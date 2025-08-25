@@ -1,12 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections import defaultdict, deque
 import re
 
-class AssemblyAlgorithm(ABC):
-    @abstractmethod
-    def run(self, input_str):
-        pass
-
+class Sequencing(ABC):
     def reconstruct_genome_from_path(self, nodes, path):
         if not path:
             return "No path found"
@@ -15,40 +11,40 @@ class AssemblyAlgorithm(ABC):
             genome += node[-1] if isinstance(node, str) else node[0][-1]
         return genome
 
-def generate_kmers(genome, k):
-    kmers = [genome[i:i+k] for i in range(len(genome) - k + 1)]
-    kmers.sort()
-    return ' '.join(kmers)
+    def generate_kmers(self, genome, k):
+        kmers = [genome[i:i+k] for i in range(len(genome) - k + 1)]
+        kmers.sort()
+        return ' '.join(kmers)
 
-def generate_read_pairs(genome, k, d):
-    L = 2 * k + d
-    pairs = []
-    for i in range(len(genome) - L + 1):
-        window = genome[i:i+L]
-        first_kmer = window[:k]
-        second_kmer = window[k + d:k + d + k]
-        pairs.append(f"({first_kmer},{second_kmer})")
-    pairs.sort()
-    return ' '.join(pairs)
+    def generate_read_pairs(self, genome, k, d):
+        L = 2 * k + d
+        pairs = []
+        for i in range(len(genome) - L + 1):
+            window = genome[i:i+L]
+            first_kmer = window[:k]
+            second_kmer = window[k + d:k + d + k]
+            pairs.append(f"({first_kmer},{second_kmer})")
+        pairs.sort()
+        return ' '.join(pairs)
 
-def build_de_bruijn_graph(kmers_str):
-    kmers = kmers_str.strip().split()
-    graph = defaultdict(list)
-    in_degree = defaultdict(int)
-    out_degree = defaultdict(int)
-    nodes = set()
-    for kmer in kmers:
-        prefix = kmer[:-1]
-        suffix = kmer[1:]
-        graph[prefix].append(suffix)
-        out_degree[prefix] += 1
-        in_degree[suffix] += 1
-        nodes.update([prefix, suffix])
-    return graph, nodes, in_degree, out_degree
+    def build_de_bruijn_graph(self, kmers_str):
+        kmers = kmers_str.strip().split()
+        graph = defaultdict(list)
+        in_degree = defaultdict(int)
+        out_degree = defaultdict(int)
+        nodes = set()
+        for kmer in kmers:
+            prefix = kmer[:-1]
+            suffix = kmer[1:]
+            graph[prefix].append(suffix)
+            out_degree[prefix] += 1
+            in_degree[suffix] += 1
+            nodes.update([prefix, suffix])
+        return graph, nodes, in_degree, out_degree
 
-class DeBruijnEulerian(AssemblyAlgorithm):
+class DeBruijnEulerian(Sequencing):
     def run(self, kmers_str):
-        graph, nodes, in_degree, out_degree = build_de_bruijn_graph(kmers_str)
+        graph, nodes, in_degree, out_degree = self.build_de_bruijn_graph(kmers_str)
         start_node = None
         for node in nodes:
             outdeg = out_degree.get(node, 0)
@@ -76,7 +72,7 @@ class DeBruijnEulerian(AssemblyAlgorithm):
         path = path[::-1]
         return self.reconstruct_genome_from_path(path[0], path)
 
-class PairedDeBruijnEulerian(AssemblyAlgorithm):
+class PairedDeBruijnEulerian(Sequencing):
     def __init__(self, k, d):
         self.k = k
         self.d = d
@@ -134,9 +130,9 @@ class PairedDeBruijnEulerian(AssemblyAlgorithm):
                 return "No valid genome can be reconstructed"
         return prefix_string + suffix_string[-(self.k + self.d):]
 
-class MaximalNonBranching(AssemblyAlgorithm):
+class MaximalNonBranching(Sequencing):
     def run(self, kmers_str):
-        graph, nodes, in_degree, out_degree = build_de_bruijn_graph(kmers_str)
+        graph, nodes, in_degree, out_degree = self.build_de_bruijn_graph(kmers_str)
 
         def is_1_in_1_out(node):
             return in_degree[node] == 1 and out_degree[node] == 1

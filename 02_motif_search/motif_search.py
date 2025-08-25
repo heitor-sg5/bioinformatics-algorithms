@@ -1,11 +1,7 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import random
 
-class MotifSearchAlgorithm(ABC):
-    @abstractmethod
-    def run(self, sequences, k, t, n=None):
-        pass
-
+class MotifSearch(ABC):
     def create_profile_matrix(self, motifs):
         k = len(motifs[0])
         profile = {nuc: [1] * k for nuc in "ACGT"}
@@ -57,7 +53,7 @@ class MotifSearchAlgorithm(ABC):
         start = random.randint(0, len(dna) - k)
         return dna[start:start + k]
 
-class GreedyMotifSearch(MotifSearchAlgorithm):
+class GreedyMotifSearch(MotifSearch):
     def run(self, sequences, k, t, n=None):
         best_motifs = [dna[:k] for dna in sequences]
         first_string = sequences[0]
@@ -71,7 +67,7 @@ class GreedyMotifSearch(MotifSearchAlgorithm):
                 best_motifs = motifs
         return best_motifs
 
-class RandomMotifSearch(MotifSearchAlgorithm):
+class RandomMotifSearch(MotifSearch):
     def run(self, sequences, k, t, n):
         best_motifs = [self.random_kmer(dna, k) for dna in sequences]
         best_score = self.score(best_motifs)
@@ -88,7 +84,7 @@ class RandomMotifSearch(MotifSearchAlgorithm):
                     break
         return best_motifs
 
-class GibbsSamplerMotifSearch(MotifSearchAlgorithm):
+class GibbsSamplerMotifSearch(MotifSearch):
     def profile_random_kmer(self, text, k, profile):
         n = len(text)
         probabilities = []

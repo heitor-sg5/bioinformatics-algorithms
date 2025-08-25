@@ -44,7 +44,7 @@ def load_fasta(file_path):
 def main():
     sequence = get_fasta_file()
     p, n, m, t, c = get_user_inputs()
-    ts = TheoreticalSpectra(p=0.0)
+    ts = TheoreticalSpectra()
     theoretical_spectrum = ts.cyclic_spectrum_with_error(sequence, 0.0)
     error_spectrum = ts.cyclic_spectrum_with_error(sequence, p)
     algorithms = [

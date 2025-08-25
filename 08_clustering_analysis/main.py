@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog
 import time
 import ast
-from clustering_analysis import ClusteringBase, KCentresClustering, LloydKMeansClustering, SoftKMeansClustering, CASTClustering, HierarchicalClustering
+from clustering_analysis import KCentresClustering, LloydKMeansClustering, SoftKMeansClustering, CASTClustering, HierarchicalClustering
 
 def get_user_inputs(): 
     k_input = input("Enter k (default 3): ").strip()
@@ -60,7 +60,6 @@ def main():
         ("CAST Clustering", CASTClustering(theta)),
         ("Hierarchical Clustering", HierarchicalClustering(linkage))
     ]
-    clustering_base = ClusteringBase()
     for algo_name, algo in algorithms:
         start_time = time.time()
         result = algo.run(data, k)
@@ -68,7 +67,7 @@ def main():
         results.append(f"--- {algo_name} ---\n")
         results.append(f"Runtime: {runtime:.1f} seconds\n")
         results.append("Result:\n")
-        result_str = clustering_base.format_result(result, data, algo_name)
+        result_str = algo.format_result(result, data, algo_name)
         results.append(result_str + "\n")
         results.append("\n")
     total_runtime = time.time() - overall_start

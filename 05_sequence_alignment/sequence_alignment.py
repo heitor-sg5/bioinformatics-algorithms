@@ -1,15 +1,11 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import numpy as np
 from Bio.Align import substitution_matrices
 from itertools import product
 from collections import Counter
 import math
 
-class AlignmentAlgorithm(ABC):
-    @abstractmethod
-    def run(self, *args):
-        pass
-
+class AlignmentBase(ABC):
     def build_score_matrix(self, pmm, p_gap):
         bases = ['A', 'C', 'G', 'T', '-']
         score_matrix = {}
@@ -47,7 +43,7 @@ class AlignmentAlgorithm(ABC):
                 break
         return ''.join(reversed(aligned_v)), ''.join(reversed(aligned_w))
 
-class GlobalAlignment(AlignmentAlgorithm):
+class GlobalAlignment(AlignmentBase):
     def __init__(self, mode, pmm, p_gap, gap_open=None, gap_extend=None):
         self.mode = mode
         self.pmm = pmm
@@ -155,7 +151,6 @@ class GlobalAlignment(AlignmentAlgorithm):
         )
         return [aligned_v, aligned_w], score
 
-
     def run(self, v, w):
         if self.mode == 'needleman_wunsch':
             return self.needleman_wunsch(v, w)
@@ -166,7 +161,7 @@ class GlobalAlignment(AlignmentAlgorithm):
         elif self.mode == 'pam250':
             return self.needleman_wunsch(v, w)
 
-class SmithWaterman(AlignmentAlgorithm):
+class SmithWaterman(AlignmentBase):
     def __init__(self, pmm, p_gap):
         self.pmm = pmm
         self.p_gap = p_gap
@@ -196,7 +191,7 @@ class SmithWaterman(AlignmentAlgorithm):
         aligned_v, aligned_w = self.backtrack_pairwise(backtrack, v, w, *max_pos, 'nonzero')
         return [aligned_v, aligned_w], max_score
 
-class FittingAlignment(AlignmentAlgorithm):
+class FittingAlignment(AlignmentBase):
     def __init__(self, pmm, p_gap):
         self.pmm = pmm
         self.p_gap = p_gap
@@ -232,7 +227,7 @@ class FittingAlignment(AlignmentAlgorithm):
         aligned_v, aligned_w = self.backtrack_pairwise(backtrack, v, w, max_i, m, 'edge')
         return [aligned_v, aligned_w], max_score
 
-class MultipleSequenceAlignment(AlignmentAlgorithm):
+class MSA(AlignmentBase):
     def __init__(self, scoring_mode, pmm, p_gap):
         self.scoring_mode = scoring_mode
         self.pmm = pmm
