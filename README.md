@@ -1,7 +1,7 @@
 # Bioinformatics Algorithms
 
 ## Overview
-This repository contains implementations of core algorithms from Bioinformatics Algorithms: An Active Learning Approach by Phillip Compeau & Pavel Pevzner. It provides Python scripts for a broad range of bioinformatics topics, serving as a reference for key computational techniques and algorithmic concepts.
+This repository contains implementations of core algorithms from Bioinformatics Algorithms: An Active Learning Approach by Phillip Compeau & Pavel Pevzner, as well as some of my own bioinformatics projects. It provides Python scripts for a broad range of bioinformatics topics, serving as a reference for key computational techniques and algorithmic concepts.
 
 ---
 
@@ -28,6 +28,7 @@ This repository contains implementations of core algorithms from Bioinformatics 
 - **Combinatorial Pattern Matching** – efficient pattern search algorithms  
 - **HMM Classification Analysis** – sequence classification using profile hidden Markov model matrices
 - **Peptide Vector Search** – sequences linear peptides from vector spectra and searches for database matches
+- **HMM ORF Analysis** - identifies open reading frames using two-pass scanning with second order Markov model learning
 
 ---
 
@@ -101,6 +102,11 @@ Bioinformatics-Algorithms/
 │   ├── peptide_search.py
 │   ├── test1.txt
 │   ├── test2.txt
+│   └── results.txt
+├── 12_hmm_orf_analysis/
+│   ├── main.py
+│   ├── orf_analysis.py
+│   ├── test.txt
 │   └── results.txt
 └── README.md
 ```
