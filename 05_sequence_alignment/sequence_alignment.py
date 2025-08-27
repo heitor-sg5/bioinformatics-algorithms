@@ -1,11 +1,10 @@
-from abc import ABC
 import numpy as np
 from Bio.Align import substitution_matrices
 from itertools import product
 from collections import Counter
 import math
 
-class AlignmentBase(ABC):
+class AlignmentBase:
     def build_score_matrix(self, pmm, p_gap):
         bases = ['A', 'C', 'G', 'T', '-']
         score_matrix = {}

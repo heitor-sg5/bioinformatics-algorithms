@@ -1,7 +1,6 @@
-from abc import ABC
 from collections import defaultdict
 
-class OFBase(ABC):
+class OFBase:
     def reverse_complement(self, sequence):
         complement = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
         return ''.join(complement[base] for base in reversed(sequence))

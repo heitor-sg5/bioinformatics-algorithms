@@ -1,7 +1,6 @@
 import numpy as np
-from abc import ABC
 
-class PeptideBase(ABC):
+class PeptideBase:
     amino_acid_mass = {
         'G': 57,  'A': 71,  'S': 87,  'P': 97,  'V': 99,
         'T': 101, 'C': 103, 'I': 113, 'L': 113, 'N': 114,

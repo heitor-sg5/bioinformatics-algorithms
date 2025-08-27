@@ -1,7 +1,6 @@
-from abc import ABC
 import random
 
-class MotifSearch(ABC):
+class MotifSearch:
     def create_profile_matrix(self, motifs):
         k = len(motifs[0])
         profile = {nuc: [1] * k for nuc in "ACGT"}

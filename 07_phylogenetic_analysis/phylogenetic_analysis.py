@@ -3,7 +3,6 @@ import tempfile
 import os
 import numpy as np
 import random
-from abc import ABC
 
 class DistanceMatrixBase:
     def muscle_align(self, sequences, muscle_path=r"C:\Tools\muscle.exe"):
@@ -86,7 +85,7 @@ class DistanceMatrixBase:
                 dist_matrix[j][i] = dist
         return dist_matrix
     
-class PhyloBase(ABC):
+class PhyloBase:
     def format_tree(self, node):
         result_str = []
         def collect_tree(n, indent=0):

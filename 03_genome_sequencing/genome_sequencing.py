@@ -1,8 +1,7 @@
-from abc import ABC
 from collections import defaultdict, deque
 import re
 
-class Sequencing(ABC):
+class Sequencing:
     def reconstruct_genome_from_path(self, nodes, path):
         if not path:
             return "No path found"

@@ -1,7 +1,6 @@
 from collections import defaultdict
-from abc import ABC
 
-class PatternMatchingBase(ABC):
+class PatternMatchingBase:
     def burrows_wheeler_transform(self, text):
         rotations = [text[i:] + text[:i] for i in range(len(text))]
         rotations_sorted = sorted(rotations)

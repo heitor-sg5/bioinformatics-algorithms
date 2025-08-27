@@ -1,11 +1,10 @@
-from abc import ABC
 import numpy as np
 import io
 import os
 import subprocess
 import tempfile
 
-class HMMBase(ABC):
+class HMMBase:
     def __init__(self, states, transition, emission, iterations):
         self.states = states
         self.transition = transition

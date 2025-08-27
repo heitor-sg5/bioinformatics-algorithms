@@ -1,4 +1,3 @@
-from abc import ABC
 from collections import Counter
 import random
 
@@ -10,7 +9,7 @@ amino_acid_mass = {
     'U': 168.1, 'W': 186.2
 }
 
-class TheoreticalSpectra():
+class TheoreticalSpectra:
     def cyclic_spectrum_with_error(self, peptide, p):
         prefix_mass = [0.0]
         for aa in peptide:
@@ -31,7 +30,7 @@ class TheoreticalSpectra():
         noisy_spectrum = [mass for i, mass in enumerate(spectrum) if i not in indices_to_remove]
         return sorted(noisy_spectrum)
 
-class Sequencing(ABC):
+class Sequencing:
     def mass(self, peptide):
         return round(sum(amino_acid_mass[aa] for aa in peptide), 1)
 

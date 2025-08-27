@@ -1,9 +1,8 @@
 import random
 import math
 import numpy as np
-from abc import ABC
 
-class ClusteringBase(ABC):
+class ClusteringBase:
     def euclidean(self, a, b):
         return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
     

@@ -1,8 +1,7 @@
-from abc import ABC
 from collections import defaultdict, deque
 import matplotlib.pyplot as plt
 
-class GenomeRearrangementBase(ABC):
+class GenomeRearrangementBase:
     def pattern_to_number(self, pattern):
         num = 0
         for symbol in pattern:
