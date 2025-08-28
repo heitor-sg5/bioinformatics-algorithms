@@ -6,18 +6,20 @@ from orf_analysis import TwoPassORF, Charts
 def get_user_inputs():
     min_input = input("Enter min_size (default 50): ").strip()
     max_input = input("Enter max_overlap (default 2): ").strip()
-    t_input = input("Set t by std or nth-percentile (0/1)?").strip()
+    k_input = input("Enter k (default 6): ").strip()
+    t_input = input("Set t by std or nth-percentile (0/1)? ").strip()
     t_input = int(t_input) if t_input else 0
     if int(t_input) == 1:
-        t_input = input("Enter t nth-percentile (10-90, default 50):")
+        t_input = input("Enter t nth-percentile (10-90, default 50): ")
         t = int(t_input) if t_input else 50
     else:
         t = 0
     L_input = input("Enter L (default 2500): ").strip()
     min_size = int(min_input) if min_input else 50
     max_overlap = int(max_input) if max_input else 2
+    k = int(k_input) if k_input else 6
     L = int(L_input) if L_input else 2500
-    return min_size, max_overlap, t, L
+    return min_size, max_overlap, k, t, L
 
 def get_fasta_file():
     root = tk.Tk()
@@ -46,10 +48,10 @@ def load_fasta(file_path):
 
 def main():
     text = get_fasta_file()
-    min_size, max_overlap, t, L = get_user_inputs()
+    min_size, max_overlap, k, t, L = get_user_inputs()
     tp = TwoPassORF()
     start_time = time.time()
-    orfs = tp.two_pass(text, min_size, max_overlap, t, L)
+    orfs = tp.two_pass(text, min_size, max_overlap, t, L, k)
     results = []
     if not orfs:
         results.append("No ORFs found.\n")
@@ -59,7 +61,7 @@ def main():
         results.extend(summary)
         results.append(f"{len(orfs)} ORFs found.\n\n")
         for i, orf in enumerate(orfs, 1):
-            results.append(f"ID: {i} | Length: {orf['len'] * 3} ({orf['len']}) | Pos: {orf['start']}-{orf['end']} | Frame: {orf['strand']}{orf['frame']} | Score: {orf['score']:.2f}\n")
+            results.append(f"ID: {i} | Length: {orf['len'] * 3} ({orf['len']}) | Pos: {orf['start']}-{orf['end']} | Frame: {orf['strand']}{orf['frame']} | Score: {orf['score']:.2f} | Upstream: {orf['upstream']}\n")
             results.append(f"ORF: {orf['seq']}\n\n")
     total_runtime = time.time() - start_time
     results.append(f"Total Runtime: {total_runtime:.1f} seconds\n")
