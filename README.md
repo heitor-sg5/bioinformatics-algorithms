@@ -28,7 +28,7 @@ This repository contains implementations of core algorithms from Bioinformatics 
 - **Combinatorial Pattern Matching** – efficient pattern search algorithms  
 - **HMM Classification Analysis** – sequence classification using profile hidden Markov model matrices
 - **Peptide Vector Search** – sequences linear peptides from vector spectra and searches for database matches
-- **Two-Pass Markov ORF Finder** - identifies open reading frames using two-pass scanning with second order Markov learning
+- **ORF Analysis** - identifies and scores open reading frames using Markov models and motif search with position weight matrices.
 
 ---
 
