@@ -351,7 +351,7 @@ class TwoPassORF(FirstPassORF, SecondPassORF, GibbsSamplerMotifSearch):
         nc_transitions = self.build_1st_markov(intergenic_regions, codon_to_vector)
         return c_transitions, nc_transitions, filtered_orfs, base_transitions
 
-    def second_scan(self, codon_to_vector, max_overlap, t, L, orfs, c_transitions, nc_transitions, base_transitions, k, max_iter=3):
+    def second_scan(self, codon_to_vector, max_overlap, t, L, orfs, c_transitions, nc_transitions, base_transitions, k, max_iter=1):
         pwm = None
         leaderboard = self.build_leaderboard(orfs, L, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions)
         leaderboard_with_motif = self.motif_search(leaderboard, k, L, n=200)
@@ -372,7 +372,7 @@ class TwoPassORF(FirstPassORF, SecondPassORF, GibbsSamplerMotifSearch):
         final_filtered_orfs = self.motif_search(overlap_orfs, k, L, n=200)
         return final_filtered_orfs
 
-    def two_pass(self, genome, min_size, max_overlap, t, L, k, max_iter=3):
+    def two_pass(self, genome, min_size, max_overlap, t, L, k, max_iter=1):
         codon_to_vector = {c: self.base_to_int_map[c[0]]*16 + self.base_to_int_map[c[1]]*4 + self.base_to_int_map[c[2]] for c in self.codons}
         rev_genome = self.reverse_complement(genome)
         c_transitions, nc_transitions, orfs, base_transitions = self.first_scan(genome, rev_genome, codon_to_vector, min_size)
