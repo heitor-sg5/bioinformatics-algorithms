@@ -5,7 +5,7 @@ from orf_analysis import TwoPassORF, Charts
 
 def get_user_inputs():
     min_input = input("Enter min_size (default 50): ").strip()
-    max_input = input("Enter max_overlap (default 2): ").strip()
+    max_input = input("Enter max_overlap (default 3): ").strip()
     k_input = input("Enter k (default 6): ").strip()
     t_input = input("Set t by std or nth-percentile (0/1)? ").strip()
     t_input = int(t_input) if t_input else 0
@@ -14,11 +14,11 @@ def get_user_inputs():
         t = int(t_input) if t_input else 50
     else:
         t = 0
-    L_input = input("Enter L (default 2500): ").strip()
+    L_input = input("Enter L (default 3000): ").strip()
     min_size = int(min_input) if min_input else 50
-    max_overlap = int(max_input) if max_input else 2
+    max_overlap = int(max_input) if max_input else 3
     k = int(k_input) if k_input else 6
-    L = int(L_input) if L_input else 2500
+    L = int(L_input) if L_input else 3000
     return min_size, max_overlap, k, t, L
 
 def get_fasta_file():
@@ -61,7 +61,7 @@ def main():
         results.extend(summary)
         results.append(f"{len(orfs)} ORFs found.\n\n")
         for i, orf in enumerate(orfs, 1):
-            results.append(f"ID: {i} | Length: {orf['len'] * 3} ({orf['len']}) | Pos: {orf['start']}-{orf['end']} | Frame: {orf['strand']}{orf['frame']} | Score: {orf['score']:.2f} | Upstream: {orf['upstream']}\n")
+            results.append(f"ID: {i} | Length: {orf['len'] * 3} ({orf['len']}) | Pos: {orf['start']}-{orf['end']} | Frame: {orf['strand']}{orf['frame']} | Score: {orf['score']:.2f} | Upstream: {orf['upstream']} | Motif: {orf['motif']}\n")
             results.append(f"ORF: {orf['seq']}\n\n")
     total_runtime = time.time() - start_time
     results.append(f"Total Runtime: {total_runtime:.1f} seconds\n")
