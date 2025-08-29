@@ -49,9 +49,22 @@ class ORFBase:
         transition_counts += alpha
         transition_probs = transition_counts / transition_counts.sum(axis=1, keepdims=True)
         return transition_probs
+    
+    def build_base_markov(self, intergenic_regions):
+        trans_counts = np.zeros((4, 4))
+        for entry in intergenic_regions:
+            seq = entry["seq"]
+            for i in range(len(seq) - 1):
+                b1, b2 = seq[i], seq[i+1]
+                if b1 in self.base_to_int_map and b2 in self.base_to_int_map:
+                    trans_counts[self.base_to_int_map[b1], self.base_to_int_map[b2]] += 1
+        alpha = 1.0
+        trans_counts += alpha
+        trans_probs = trans_counts / trans_counts.sum(axis=1, keepdims=True)
+        return trans_probs
         
     def build_pwm(self, orfs):
-        upstreams = [orf["upstream"] for orf in orfs]
+        upstreams = [orf["motif"] for orf in orfs]
         pwm = np.ones((4, 20))
         for seq in upstreams:
             for i, b in enumerate(seq):
@@ -73,23 +86,18 @@ class ORFBase:
             transitions += 1
         return log_odds / max(transitions, 1)
     
-    def markov_score(self, orf, codon_to_vector, transition_probs):
-        log_prob = 0.0
-        transitions = 0
-        for i in range(0, len(orf) - 9, 3):
-            c1 = codon_to_vector[orf[i:i+3]]
-            c2 = codon_to_vector[orf[i+3:i+6]]
-            c3 = codon_to_vector[orf[i+6:i+9]]
-            log_prob += math.log(transition_probs[c1, c2, c3])
-            transitions += 1
-        return log_prob / max(transitions, 1)
-        
-    def pwm_score(self, upstream, pwm):
+    def pwm_score(self, upstream, pwm, transitions):
         score = 0.0
-        for i, b in enumerate(upstream):
-            if i >= pwm.shape[1]: break
-            if b in self.base_to_int_map:
-                score += math.log(pwm[self.base_to_int_map[b], i])
+        if pwm is None:
+            return score
+        for i, base in enumerate(upstream):
+            if i >= pwm.shape[1] or i >= transitions.shape[1]:
+                break
+            if base in self.base_to_int_map:
+                base_idx = self.base_to_int_map[base]
+                p = pwm[base_idx, i]
+                q = transitions[base_idx, i]
+            score += math.log((p + 1e-12) / (q + 1e-12))
         return score
     
 class FirstPassORF(ORFBase):
@@ -120,84 +128,7 @@ class FirstPassORF(ORFBase):
                 orfs_per_frame[idx].append((start, stop))
         return orfs_per_frame
     
-    def extract_orfs_and_intergenic(self, orfs, genome, min_size):
-        orf_entries = []
-        glen = len(genome)
-        for orf_list in orfs:
-            for start_idx, stop_idx in orf_list:
-                nt_start = start_idx * 3
-                nt_stop = stop_idx * 3 + 3
-                if nt_start < 0: nt_start = 0
-                if nt_stop > glen: nt_stop = glen
-                orf_len = (nt_stop - nt_start) // 3
-                if orf_len < min_size:
-                    continue
-                orf_seq = genome[nt_start:nt_stop]
-                if nt_start >= 20:
-                    upstream_seq = genome[nt_start - 20:nt_start]
-                else:
-                    upstream_seq = genome[0:nt_start]
-                orf_entries.append({
-                    "start": nt_start,
-                    "end": nt_stop,
-                    "seq": orf_seq,
-                    "upstream": upstream_seq,
-                    "score": 0
-                })
-        new_orfs = [{"seq": e["seq"], "score": e["score"], "upstream": e["upstream"]} for e in orf_entries]
-        if not orf_entries:
-            intergenic = [{"seq": genome, "score": 0}] if len(genome) >= 6 else []
-            return new_orfs, intergenic
-        orf_entries.sort(key=lambda x: x["start"])
-        merged = []
-        cur_s = orf_entries[0]["start"]
-        cur_e = orf_entries[0]["end"]
-        for e in orf_entries[1:]:
-            if e["start"] <= cur_e:
-                cur_e = max(cur_e, e["end"])
-            else:
-                merged.append((cur_s, cur_e))
-                cur_s, cur_e = e["start"], e["end"]
-        merged.append((cur_s, cur_e))
-        intergenic = []
-        prev = 0
-        for s, e in merged:
-            if s > prev:
-                seq = genome[prev:s]
-                if len(seq) >= 6:
-                    intergenic.append({"seq": seq, "score": 0})
-            prev = max(prev, e)
-        if prev < glen:
-            seq = genome[prev:]
-            if len(seq) >= 6:
-                intergenic.append({"seq": seq, "score": 0})
-        return new_orfs, intergenic
-
-class SecondPassORF(ORFBase):
-    def build_leaderboard(self, orfs, genome, min_size, L, codon_to_vector, transition_probs, pwm):
-        leaderboard = []
-        for orf_list in orfs:
-            for start_idx, stop_idx in orf_list:
-                nt_start = start_idx * 3
-                nt_stop = stop_idx * 3 + 3
-                orf_seq = genome[nt_start:nt_stop]
-                orf_len = len(orf_seq) // 3
-                if orf_len < min_size:
-                    continue
-                if nt_start >= 20:
-                     upstream = genome[nt_start - 20:nt_start]
-                else:
-                    upstream = genome[0:nt_start]
-                score = self.markov_score(orf_seq, codon_to_vector, transition_probs)
-                score += self.pwm_score(upstream, pwm)
-                if len(leaderboard) < L:
-                    heapq.heappush(leaderboard, (score, {"seq": orf_seq, "score": score, "upstream": upstream}))
-                else:
-                    if score > leaderboard[0][0]:
-                        heapq.heappushpop(leaderboard, (score, {"seq": orf_seq, "score": score, "upstream": upstream}))
-        return [item[1] for item in sorted(leaderboard, key=lambda x: x[0], reverse=True)]
-
-    def find_orfs(self, orfs, genome, rev_genome, codon_to_vector, min_size, c_transitions, nc_transitions, pwm):
+    def extract_orfs_and_intergenic(self, orfs, genome, rev_genome, codon_to_vector, min_size):
         n = len(genome)
         new_orfs = []
         for frame_idx, orf_list in enumerate(orfs):
@@ -215,8 +146,6 @@ class SecondPassORF(ORFBase):
                         upstream = genome[nt_start - 20:nt_start]
                     else:
                         upstream = genome[0:nt_start]
-                    score = self.log_odds_score(orf_seq, codon_to_vector, c_transitions, nc_transitions)
-                    score += self.pwm_score(upstream, pwm)
                     new_orfs.append({
                         "seq": orf_seq,
                         "len": orf_len,
@@ -224,7 +153,7 @@ class SecondPassORF(ORFBase):
                         "end": nt_stop,
                         "strand": strand,
                         "frame": frame_number,
-                        "score": score,
+                        "score": 0,
                         "upstream": upstream
                     })
             else:
@@ -241,8 +170,6 @@ class SecondPassORF(ORFBase):
                         upstream = rev_genome[nt_start - 20:nt_start]
                     else:
                         upstream = rev_genome[0:nt_start]
-                    score = self.log_odds_score(orf_seq, codon_to_vector, c_transitions, nc_transitions)
-                    score += self.pwm_score(upstream, pwm)
                     new_orfs.append({
                         "seq": orf_seq,
                         "len": orf_len,
@@ -250,10 +177,57 @@ class SecondPassORF(ORFBase):
                         "end": nt_stop,
                         "strand": strand,
                         "frame": frame_number,
-                        "score": score,
+                        "score": 0,
                         "upstream": upstream
                     })
-        return new_orfs
+        if not new_orfs:
+            intergenic = [{"seq": genome, "score": 0}] if len(genome) >= 6 else []
+            return new_orfs, intergenic
+        new_orfs.sort(key=lambda x: x["start"])
+        merged = []
+        cur_s = new_orfs[0]["start"]
+        cur_e = new_orfs[0]["end"]
+        for e in new_orfs[1:]:
+            if e["start"] <= cur_e:
+                cur_e = max(cur_e, e["end"])
+            else:
+                merged.append((cur_s, cur_e))
+                cur_s, cur_e = e["start"], e["end"]
+        merged.append((cur_s, cur_e))
+        intergenic = []
+        prev = 0
+        for s, e in merged:
+            if s > prev:
+                seq = genome[prev:s]
+                if len(seq) >= 6:
+                    intergenic.append({"seq": seq, "score": 0})
+            prev = max(prev, e)
+        if prev < n:
+            seq = genome[prev:]
+            if len(seq) >= 6:
+                intergenic.append({"seq": seq, "score": 0})
+        return new_orfs, intergenic
+
+class SecondPassORF(ORFBase):
+    def build_leaderboard(self, orfs, L, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions):
+        leaderboard = []
+        for orf in orfs:
+            score = self.log_odds_score(orf['seq'], codon_to_vector, c_transitions, nc_transitions)
+            score += self.pwm_score(orf['upstream'], pwm, base_transitions)
+            orf['score'] = score
+            if len(leaderboard) < L:
+                heapq.heappush(leaderboard, (orf['score'], orf))
+            else:
+                if score > leaderboard[0][0]:
+                  heapq.heappush(leaderboard, (orf['score'], orf))
+        return [item[1] for item in sorted(leaderboard, key=lambda x: x[0], reverse=True)]
+
+    def find_orfs(self, orfs, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions):
+        for orf in orfs:
+            score = self.log_odds_score(orf['seq'], codon_to_vector, c_transitions, nc_transitions)
+            score += self.pwm_score(orf['upstream'], pwm, base_transitions)
+            orf['score'] = score
+        return orfs
 
     def orf_overlap(self, orfs, max_overlap, t_type):
         scores = np.array([orf['score'] for orf in orfs])
@@ -371,26 +345,38 @@ class TwoPassORF(FirstPassORF, SecondPassORF, GibbsSamplerMotifSearch):
     def first_scan(self, genome, rev_genome, codon_to_vector, min_size):
         frames = self.genome_to_vectors(genome, rev_genome, codon_to_vector)
         orfs = self.find_start_stop_codons(frames, codon_to_vector)
-        filtered_orfs, intergenic_regions = self.extract_orfs_and_intergenic(orfs, genome, min_size)
-        pwm = self.build_pwm(filtered_orfs) 
+        filtered_orfs, intergenic_regions = self.extract_orfs_and_intergenic(orfs, genome, rev_genome, codon_to_vector, min_size)
+        base_transitions = self.build_base_markov(intergenic_regions)
         c_transitions = self.build_2nd_markov(filtered_orfs, codon_to_vector)
         nc_transitions = self.build_1st_markov(intergenic_regions, codon_to_vector)
-        return c_transitions, nc_transitions, orfs, pwm
-    
-    def second_scan(self, genome, rev_genome, codon_to_vector, min_size, max_overlap, t, L, orfs, c_transitions, nc_transitions, pwm, k):
-        leaderboard = self.build_leaderboard(orfs, genome, min_size, L, codon_to_vector, c_transitions, pwm)
-        new_transitions = self.build_2nd_markov(leaderboard, codon_to_vector)
-        new_pwm = self.build_pwm(leaderboard)
-        new_orfs = self.find_orfs(orfs, genome, rev_genome, codon_to_vector, min_size, new_transitions, nc_transitions, new_pwm)
-        overlap_orfs = self.orf_overlap(new_orfs, max_overlap, t)
-        filtered_orfs = self.motif_search(overlap_orfs, k, L, n=200)
-        return filtered_orfs
-    
-    def two_pass(self, genome, min_size, max_overlap, t, L, k):
+        return c_transitions, nc_transitions, filtered_orfs, base_transitions
+
+    def second_scan(self, codon_to_vector, max_overlap, t, L, orfs, c_transitions, nc_transitions, base_transitions, k, max_iter=3):
+        pwm = None
+        leaderboard = self.build_leaderboard(orfs, L, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions)
+        leaderboard_with_motif = self.motif_search(leaderboard, k, L, n=200)
+        pwm = self.build_pwm(leaderboard_with_motif)
+        prev_pass_set = None
+        for _ in range(1, max_iter + 1):
+            new_c_transitions = self.build_2nd_markov(leaderboard_with_motif, codon_to_vector)
+            rescored_orfs = self.find_orfs(orfs, codon_to_vector, new_c_transitions, nc_transitions, pwm, base_transitions)
+            leaderboard = self.build_leaderboard(rescored_orfs, L, codon_to_vector, new_c_transitions, nc_transitions, pwm, base_transitions)
+            leaderboard_with_motif = self.motif_search(leaderboard, k, L, n=200)
+            pwm = self.build_pwm(leaderboard_with_motif)
+            overlap_orfs = self.orf_overlap(rescored_orfs, max_overlap, t)
+            current_pass_set = set((o['start'], o['end'], o.get('strand', o.get('frame'))) for o in overlap_orfs)
+            if prev_pass_set is not None and current_pass_set == prev_pass_set:
+                break
+            prev_pass_set = current_pass_set
+            c_transitions = new_c_transitions
+        final_filtered_orfs = self.motif_search(overlap_orfs, k, L, n=200)
+        return final_filtered_orfs
+
+    def two_pass(self, genome, min_size, max_overlap, t, L, k, max_iter=3):
         codon_to_vector = {c: self.base_to_int_map[c[0]]*16 + self.base_to_int_map[c[1]]*4 + self.base_to_int_map[c[2]] for c in self.codons}
         rev_genome = self.reverse_complement(genome)
-        c_transitions, nc_transitions, orfs, pwm = self.first_scan(genome, rev_genome, codon_to_vector, min_size)
-        new_orfs = self.second_scan(genome, rev_genome, codon_to_vector, min_size, max_overlap, t, L, orfs, c_transitions, nc_transitions, pwm, k)
+        c_transitions, nc_transitions, orfs, base_transitions = self.first_scan(genome, rev_genome, codon_to_vector, min_size)
+        new_orfs = self.second_scan(codon_to_vector, max_overlap, t, L, orfs, c_transitions, nc_transitions, base_transitions, k, max_iter=max_iter)
         return new_orfs
 
 class Charts(ORFBase):
