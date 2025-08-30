@@ -29,6 +29,7 @@ This repository contains implementations of core algorithms from Bioinformatics 
 - **HMM Classification Analysis** – sequence classification using profile hidden Markov model matrices
 - **Peptide Vector Search** – sequences linear peptides from vector spectra and searches for database matches
 - **ORF Analysis** - identifies and scores open reading frames using Markov models and motif search with position weight matrices.
+- **CpG Island Prediction** - finding CpG-rich regions using GC content, observed/expected CpG ratios, and first-order Markov model scoring
 
 ---
 
@@ -106,6 +107,11 @@ Bioinformatics-Algorithms/
 ├── 12_orf_analysis/
 │   ├── main.py
 │   ├── orf_analysis.py
+│   ├── test.txt
+│   └── results.txt
+├── 12_cpg_island_prediction/
+│   ├── main.py
+│   ├── cpg_island_finder.py
 │   ├── test.txt
 │   └── results.txt
 └── README.md
