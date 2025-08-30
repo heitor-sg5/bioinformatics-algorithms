@@ -109,7 +109,7 @@ Bioinformatics-Algorithms/
 │   ├── orf_analysis.py
 │   ├── test.txt
 │   └── results.txt
-├── 12_cpg_island_prediction/
+├── 13_cpg_island_prediction/
 │   ├── main.py
 │   ├── cpg_island_finder.py
 │   ├── test.txt
