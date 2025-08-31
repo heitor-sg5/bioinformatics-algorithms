@@ -10,8 +10,8 @@ def get_user_inputs():
     t_input = input("Set t by std or nth-percentile (0/1)? ").strip()
     t_input = int(t_input) if t_input else 0
     if int(t_input) == 1:
-        t_input = input("Enter t nth-percentile (10-90, default 50): ")
-        t = int(t_input) if t_input else 50
+        t_input = input("Enter t nth-percentile (10-90, default 90): ")
+        t = int(t_input) if t_input else 90
     else:
         t = 0
     L_input = input("Enter L (default 3000): ").strip()

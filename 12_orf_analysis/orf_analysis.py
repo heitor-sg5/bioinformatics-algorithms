@@ -23,6 +23,14 @@ class ORFBase:
         complement = {'A':'T','T':'A','C':'G','G':'C'}
         return ''.join(complement[b] for b in reversed(seq))
     
+    def get_threshold(self, scores, t):
+        if t == 0:
+            mean = np.mean(scores)
+            std = np.std(scores)
+            return mean + 1 * std
+        else:
+            return np.percentile(scores, t)
+    
     def build_2nd_markov(self, leaderboard, codon_to_vector):
         transition_counts = np.zeros((64, 64, 64))
         for entry in leaderboard:
@@ -218,19 +226,17 @@ class FirstPassORF(ORFBase):
         return new_orfs, intergenic
 
 class SecondPassORF(ORFBase):
-    def build_leaderboard(self, orfs, L, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions):
+    def build_leaderboard(self, orfs, L):
         leaderboard = []
-        for orf in orfs:
-            score = self.log_odds_score(orf['seq'], codon_to_vector, c_transitions, nc_transitions)
-            score += self.pwm_score(orf['upstream'], pwm, base_transitions)
-            score += self.start_codon_prior_score(orf['seq'])
-            orf['score'] = score
+        for idx, orf in enumerate(orfs):
+            score = orf['score']
+            item = (score, idx, orf)
             if len(leaderboard) < L:
-                heapq.heappush(leaderboard, (orf['score'], orf))
+                heapq.heappush(leaderboard, item)
             else:
                 if score > leaderboard[0][0]:
-                  heapq.heappush(leaderboard, (orf['score'], orf))
-        return [item[1] for item in sorted(leaderboard, key=lambda x: x[0], reverse=True)]
+                    heapq.heappushpop(leaderboard, item)
+        return [item[2] for item in sorted(leaderboard, key=lambda x: x[0], reverse=True)]
 
     def find_orfs(self, orfs, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions):
         for orf in orfs:
@@ -240,14 +246,9 @@ class SecondPassORF(ORFBase):
             orf['score'] = score
         return orfs
 
-    def orf_overlap(self, orfs, max_overlap, t_type):
+    def orf_overlap(self, orfs, max_overlap, t):
         scores = np.array([orf['score'] for orf in orfs])
-        if t_type == 0:
-            mean = np.mean(scores)
-            std = np.std(scores)
-            t = mean + 1 * std
-        else:
-            t = np.percentile(scores, t_type)
+        t = self.get_threshold(scores, t)
         if max_overlap is None:
             return orfs
         orfs_sorted = sorted(orfs, key=lambda x: x["score"], reverse=True)
@@ -364,14 +365,15 @@ class TwoPassORF(FirstPassORF, SecondPassORF, GibbsSamplerMotifSearch):
 
     def second_scan(self, codon_to_vector, max_overlap, t, L, orfs, c_transitions, nc_transitions, base_transitions, k, max_iter=1):
         pwm = None
-        leaderboard = self.build_leaderboard(orfs, L, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions)
+        scored_orfs = self.find_orfs(orfs, codon_to_vector, c_transitions, nc_transitions, pwm, base_transitions)
+        leaderboard = self.build_leaderboard(scored_orfs, L)
         leaderboard_with_motif = self.motif_search(leaderboard, k, L, n=200)
         pwm = self.build_pwm(leaderboard_with_motif)
         prev_pass_set = None
         for _ in range(1, max_iter + 1):
             new_c_transitions = self.build_2nd_markov(leaderboard_with_motif, codon_to_vector)
             rescored_orfs = self.find_orfs(orfs, codon_to_vector, new_c_transitions, nc_transitions, pwm, base_transitions)
-            leaderboard = self.build_leaderboard(rescored_orfs, L, codon_to_vector, new_c_transitions, nc_transitions, pwm, base_transitions)
+            leaderboard = self.build_leaderboard(rescored_orfs, L)
             leaderboard_with_motif = self.motif_search(leaderboard, k, L, n=200)
             pwm = self.build_pwm(leaderboard_with_motif)
             overlap_orfs = self.orf_overlap(rescored_orfs, max_overlap, t)
@@ -379,10 +381,10 @@ class TwoPassORF(FirstPassORF, SecondPassORF, GibbsSamplerMotifSearch):
             if prev_pass_set is not None and current_pass_set == prev_pass_set:
                 break
             prev_pass_set = current_pass_set
-        final_filtered_orfs = self.motif_search(overlap_orfs, k, L, n=200)
+        final_filtered_orfs = self.motif_search(overlap_orfs, k, len(overlap_orfs), n=200)
         return final_filtered_orfs
 
-    def two_pass(self, genome, min_size, max_overlap, t, L, k, max_iter=1):
+    def two_pass(self, genome, min_size, max_overlap, t, L, k, max_iter=3):
         codon_to_vector = {c: self.base_to_int_map[c[0]]*16 + self.base_to_int_map[c[1]]*4 + self.base_to_int_map[c[2]] for c in self.codons}
         rev_genome = self.reverse_complement(genome)
         c_transitions, nc_transitions, orfs, base_transitions = self.first_scan(genome, rev_genome, codon_to_vector, min_size)

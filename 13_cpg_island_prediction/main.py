@@ -53,8 +53,8 @@ def load_fasta(file_path):
 
 def main():
     text = get_fasta_file()
-    text.upper()
-    text.replace('N', '')
+    text = text.upper()
+    text = text.replace('N', '')
     L, w, s, p, min_length, max_length, min_gc, min_obsexp, t, merge_gap = get_user_inputs()
     cpg = FindCpGIslands()
     start_time = time.time()
