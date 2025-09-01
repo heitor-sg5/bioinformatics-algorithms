@@ -1,7 +1,7 @@
 # Bioinformatics Algorithms
 
 ## Overview
-This repository contains implementations of core algorithms from Bioinformatics Algorithms: An Active Learning Approach by Phillip Compeau & Pavel Pevzner, as well as some of my own bioinformatics projects. It provides Python scripts for a broad range of bioinformatics topics, serving as a reference for key computational techniques and algorithmic concepts.
+This repository contains implementations of core algorithms from Bioinformatics Algorithms: An Active Learning Approach by Phillip Compeau & Pavel Pevzner, as well as some of my own bioinformatics projects. In addition, the repository includes a command-line interface with practical bioinformatics utilities such as GTF/GFF parsers, NCBI genome fetchers, and PubMed search tools. Together, these scripts offer both educational implementations of key computational techniques and practical tools for everyday bioinformatics workflows.
 
 ---
 
@@ -114,11 +114,12 @@ Bioinformatics-Algorithms/
 │   ├── cpg_island_finder.py
 │   ├── test.txt
 │   └── results.txt
-├── ncbi_tool/
+├── bio_tools/
 │   ├── __init__.py
 │   ├── gff_parser.py
 │   ├── ncbi_fetch.py
-│   └── pubmed_fetch.py
+│   ├── pubmed_fetch.py
+│   └── chart_builder.py
 ├── cli.py
 ├── requirements.txt
 └── README.md
@@ -176,9 +177,9 @@ python main.py
 
 - If no files or parameters are selected, it will automatically use the provided test files and default variables.
 
-### NCBI Tools
+### Biotools
 
-The `ncbi_tool` provides a unified CLI for working with GFF files, NCBI records, and PubMed searches. The general command format is:
+The `bio_tool` folder provides a unified CLI for working with data display, GFF files, NCBI records, and PubMed searches. The general command format is:
 
 ```bash
 python cli.py <tool> <command> [options]
@@ -187,11 +188,15 @@ python cli.py <tool> <command> [options]
 Where:
 
 - `<tool>` is one of:
+  - `gff` for parsing and summarizing GTF/GFF files
+  - `ncbi` for fetching NCBI records
+  - `pubmed` for searching and summarizing PubMed papers
 
+- `<command>` is the specific action (e.g., `summarize`, `fetch`, `search`)
 
-- 
+- `[options]` are tool-specific flags (e.g., `--accession`, `--max`, `--out`)
 
--
+All commands are listed in `COMMANDS.md`.
 
 ---
 

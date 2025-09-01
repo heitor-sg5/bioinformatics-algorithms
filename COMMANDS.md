@@ -1,4 +1,4 @@
-# NCBI Tools
+# Biotools
 
 ---
 
@@ -20,32 +20,17 @@ python cli.py gff summarize --accession GCF_000002285.3
 
 1. Fetch a single GenBank record
 ```bash
-python cli.py ncbi fetch NC_000913
+python cli.py ncbi fetch --accession NC_000913
 ```
 
 2. Fetch multiple accession IDs
 ```bash
-python cli.py ncbi fetch NC_000913,NC_005213
+python cli.py ncbi fetch --accession NC_000913,NC_005213
 ```
 
-3. Specify a different NCBI database
+3. Fetch by organism name
 ```bash
-python cli.py ncbi fetch NC_000913 --db nuccore
-```
-
-4. Specify output format GenBank
-```bash
-python cli.py ncbi fetch NC_000913 --format gb
-```
-
-5. Specify output format FASTA
-```bash
-python cli.py ncbi fetch NC_000913 --format fasta
-```
-
-6. Save fetched record to file
-```bash
-python cli.py ncbi fetch NC_000913 --out ecoli.gb
+python cli.py ncbi fetch "Escherichia coli"
 ```
 
 ---
@@ -57,9 +42,14 @@ python cli.py ncbi fetch NC_000913 --out ecoli.gb
 python cli.py pubmed search "CRISPR"
 ```
 
-2. Search PubMed by multiple keywords
+2. Search PubMed by multiple keywords 
+2a. (OR statement)
 ```bash
 python cli.py pubmed search "CRISPR, genome editing"
+```
+2b. (AND statement)
+```bash
+python cli.py pubmed search "CRISPR AND genome editing"
 ```
 
 3. Limit number of results
@@ -77,6 +67,35 @@ python cli.py pubmed search "CRISPR" --from 2018 --to 2023
 python cli.py pubmed search "CRISPR, genome editing" --min_count 2
 ```
 
-6. Save results to a file
+6. Order results by
+6a. (Most recent)
 ```bash
---out python cli.py pubmed search "CRISPR" --pubmed_results.txt
+python cli.py pubmed search "CRISPR" --recent
+```
+6b. (Oldest)
+```bash
+python cli.py pubmed search "CRISPR" --oldest
+```
+6c. (Keyword count)
+```bash
+python cli.py pubmed search "CRISPR" --keyword
+```
+
+---
+
+## Chart Builder
+
+1. Build line chart
+```bash
+python cli.py chart build file/to/path.txt --line
+```
+
+2. Build bar chart
+```bash
+python cli.py chart build file/to/path.txt --bar
+```
+
+3. Build scatter chart
+```bash
+python cli.py chart build file/to/path.txt --scatter
+```
