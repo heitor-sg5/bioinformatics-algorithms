@@ -122,6 +122,7 @@ Bioinformatics-Algorithms/
 │   └── chart_builder.py
 ├── cli.py
 ├── requirements.txt
+├── COMMANDS.md
 └── README.md
 ```
 
