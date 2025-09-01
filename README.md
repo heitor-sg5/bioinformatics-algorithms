@@ -156,6 +156,7 @@ pip install -r requirements.txt
 ---
 
 ## Usage
+### Algorithms
 
 Each topic folder contains a `main.py` script that runs the corresponding algorithms.  
 
@@ -174,6 +175,23 @@ python main.py
 3. The script will prompt you for the required inputs (files, parameters).
 
 - If no files or parameters are selected, it will automatically use the provided test files and default variables.
+
+### NCBI Tools
+
+The `ncbi_tool` provides a unified CLI for working with GFF files, NCBI records, and PubMed searches. The general command format is:
+
+```bash
+python cli.py <tool> <command> [options]
+```
+
+Where:
+
+- `<tool>` is one of:
+
+
+- 
+
+-
 
 ---
 
