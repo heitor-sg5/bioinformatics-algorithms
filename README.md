@@ -123,7 +123,7 @@ Bioinformatics-Algorithms/
 │   ├── test2.fasta
 │   ├── test3.fasta
 │   └── results.txt
-├── pca_hgt_prediction/
+├── 15_pca_hgt_prediction/
 │   ├── main.py
 │   ├── hgt_prediction.py
 │   ├── test1.gff3
