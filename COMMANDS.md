@@ -70,6 +70,7 @@ python cli.py pubmed search "CRISPR, genome editing" --min_count 2
 ```
 
 6. Order results by
+
 6a. (Most recent)
 ```bash
 python cli.py pubmed search "CRISPR" --recent
