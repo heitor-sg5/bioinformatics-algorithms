@@ -119,8 +119,8 @@ Prerequisites:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/heitor-sg5/Bioinformatics-Algorithms.git
-cd Bioinformatics-Algorithms
+git clone https://github.com/heitor-sg5/bioinformatics-algorithms.git
+cd bioinformatics-algorithms
 ```
 
 2. Install Python dependencies:
