@@ -1,11 +1,13 @@
 # Bioinformatics Algorithms
 
 ## Overview
+
 This repository contains my Python implementations of core algorithms presented in *Bioinformatics Algorithms: An Active Learning Approach* by Phillip Compeau and Pavel Pevzner. The implementations were developed to reinforce my understanding of algorithmic thinking in bioinformatics. This repository serves both as a learning record and as a reference implementation for fundamental bioinformatics methods.
 
 ---
 
 ## Covered Topics
+
 - **Origin Finding** – detecting replication origins in bacterial genomes  
 - **Motif Search** – identifying common motifs across DNA sequences  
 - **Genome Sequencing** – assembling genomes from reads or paired reads
