@@ -25,7 +25,6 @@ This repository contains my Python implementations of core algorithms presented 
 ## Project Structure
 
 ```
-Bioinformatics-Algorithms/
 ├── 01_origin_finder/
 │   ├── main.py
 │   ├── origin_finder.py
